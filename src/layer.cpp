@@ -97,24 +97,24 @@ int layer_to_index(const char* type)
     return -1;
 }
 
-Layer* create_layer(const char* type)
+std::unique_ptr<Layer> create_layer(const char* type)
 {
     int index = layer_to_index(type);
     if (index == -1)
-        return 0;
+        return nullptr;
 
     return create_layer(index);
 }
 #endif // NCNN_STRING
 
-Layer* create_layer(int index)
+std::unique_ptr<Layer> create_layer(int index)
 {
     if (index < 0 || index >= layer_registry_entry_count)
-        return 0;
+        return nullptr;
 
     layer_creator_func layer_creator = layer_registry[index].creator;
     if (!layer_creator)
-        return 0;
+        return nullptr;
 
     return layer_creator();
 }

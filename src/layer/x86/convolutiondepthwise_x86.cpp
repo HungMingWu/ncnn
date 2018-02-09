@@ -111,7 +111,7 @@ int ConvolutionDepthWise_x86::forward(const Mat& bottom_blob, Mat& top_blob) con
                 bias_data_g = Mat(1, (void*)((const float*)bias_data + g));
 
             // call Convolution
-            ncnn::Layer* op = ncnn::create_layer(ncnn::LayerType::Convolution);
+            std::unique_ptr<ncnn::Layer> op = ncnn::create_layer(ncnn::LayerType::Convolution);
 
             // set param
             ncnn::ParamDict pd;
@@ -139,7 +139,6 @@ int ConvolutionDepthWise_x86::forward(const Mat& bottom_blob, Mat& top_blob) con
             // forward
             op->forward(bottom_blob_bordered_g, top_blob_g);
 
-            delete op;
         }
 
 #ifdef _OPENMP
@@ -161,7 +160,7 @@ int ConvolutionDepthWise_x86::forward(const Mat& bottom_blob, Mat& top_blob) con
             bias_data_g = Mat(num_output_g, (void*)((const float*)bias_data + num_output_g * g));
 
         // call Convolution
-        ncnn::Layer* op = ncnn::create_layer(ncnn::LayerType::Convolution);
+        std::unique_ptr<ncnn::Layer> op = ncnn::create_layer(ncnn::LayerType::Convolution);
 
         // set param
         ncnn::ParamDict pd;
@@ -188,8 +187,6 @@ int ConvolutionDepthWise_x86::forward(const Mat& bottom_blob, Mat& top_blob) con
 
         // forward
         op->forward(bottom_blob_bordered_g, top_blob_g);
-
-        delete op;
     }
 
     return 0;

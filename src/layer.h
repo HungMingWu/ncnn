@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <string>
+#include <memory>
 #include <vector>
 #include "mat.h"
 #include "modelbin.h"
@@ -73,7 +74,7 @@ public:
 };
 
 // layer factory function
-typedef Layer* (*layer_creator_func)();
+typedef std::unique_ptr<Layer> (*layer_creator_func)();
 
 struct layer_registry_entry
 {
@@ -89,13 +90,13 @@ struct layer_registry_entry
 // get layer type from type name
 int layer_to_index(const char* type);
 // create layer from type name
-Layer* create_layer(const char* type);
+std::unique_ptr<Layer> create_layer(const char* type);
 #endif // NCNN_STRING
 // create layer from layer type
-Layer* create_layer(int index);
+std::unique_ptr<Layer> create_layer(int index);
 
 #define DEFINE_LAYER_CREATOR(name) \
-    ::ncnn::Layer* name##_layer_creator() { return new name; }
+    std::unique_ptr<::ncnn::Layer> name##_layer_creator() { return std::unique_ptr<::ncnn::Layer>(std::make_unique<name>()); }
 
 } // namespace ncnn
 

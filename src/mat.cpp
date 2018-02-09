@@ -12,6 +12,7 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <vector>
 #include "mat.h"
 
 #if __ARM_NEON
@@ -573,13 +574,13 @@ static void resize_bilinear_image(const Mat& src, Mat& dst, int w, int h)
     double scale_x = (double)src.w / w;
     double scale_y = (double)src.h / h;
 
-    int* buf = new int[w + h + w*2 + h*2];
+    std::vector<int> buf(w + h + w*2 + h*2);
 
-    int* xofs = buf;//new int[w];
-    int* yofs = buf + w;//new int[h];
+    int* xofs = buf.data();//new int[w];
+    int* yofs = buf.data() + w;//new int[h];
 
-    float* alpha = (float*)(buf + w + h);//new float[w * 2];
-    float* beta = (float*)(buf + w + h + w*2);//new float[h * 2];
+    float* alpha = (float*)(buf.data() + w + h);//new float[w * 2];
+    float* beta = (float*)(buf.data() + w + h + w*2);//new float[h * 2];
 
     float fx;
     float fy;
@@ -784,7 +785,6 @@ static void resize_bilinear_image(const Mat& src, Mat& dst, int w, int h)
         beta += 2;
     }
 
-    delete[] buf;
 }
 
 void resize_bilinear(const Mat& src, Mat& dst, int w, int h)

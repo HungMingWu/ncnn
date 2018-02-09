@@ -12,6 +12,8 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
+#include <cstdint>
+#include <vector>
 #include "mat.h"
 #include <limits.h>
 #include <algorithm>
@@ -1136,13 +1138,13 @@ void resize_bilinear_c3(const unsigned char* src, int srcw, int srch, unsigned c
     double scale_x = (double)srcw / w;
     double scale_y = (double)srch / h;
 
-    int* buf = new int[w + h + w + h];
+    std::vector<int> buf(w + h + w + h);
 
-    int* xofs = buf;//new int[w];
-    int* yofs = buf + w;//new int[h];
+    int* xofs = buf.data();//new int[w];
+    int* yofs = buf.data() + w;//new int[h];
 
-    short* ialpha = (short*)(buf + w + h);//new short[w * 2];
-    short* ibeta = (short*)(buf + w + h + w);//new short[h * 2];
+    short* ialpha = (short*)(buf.data() + w + h);//new short[w * 2];
+    short* ibeta = (short*)(buf.data() + w + h + w);//new short[h * 2];
 
     float fx;
     float fy;
@@ -1408,7 +1410,6 @@ void resize_bilinear_c3(const unsigned char* src, int srcw, int srch, unsigned c
         ibeta += 2;
     }
 
-    delete[] buf;
 }
 
 void resize_bilinear_c1(const unsigned char* src, int srcw, int srch, unsigned char* dst, int w, int h)
@@ -1420,13 +1421,13 @@ void resize_bilinear_c1(const unsigned char* src, int srcw, int srch, unsigned c
     double scale_x = (double)srcw / w;
     double scale_y = (double)srch / h;
 
-    int* buf = new int[w + h + w + h];
+    std::vector<int> buf(w + h + w + h);
 
-    int* xofs = buf;//new int[w];
-    int* yofs = buf + w;//new int[h];
+    int* xofs = buf.data();//new int[w];
+    int* yofs = buf.data() + w;//new int[h];
 
-    short* ialpha = (short*)(buf + w + h);//new short[w * 2];
-    short* ibeta = (short*)(buf + w + h + w);//new short[h * 2];
+    short* ialpha = (short*)(buf.data() + w + h);//new short[w * 2];
+    short* ibeta = (short*)(buf.data() + w + h + w);//new short[h * 2];
 
     float fx;
     float fy;
@@ -1649,7 +1650,6 @@ void resize_bilinear_c1(const unsigned char* src, int srcw, int srch, unsigned c
         ibeta += 2;
     }
 
-    delete[] buf;
 }
 
 void resize_bilinear_c4(const unsigned char* src, int srcw, int srch, unsigned char* dst, int w, int h)
@@ -1661,13 +1661,13 @@ void resize_bilinear_c4(const unsigned char* src, int srcw, int srch, unsigned c
     double scale_x = (double)srcw / w;
     double scale_y = (double)srch / h;
 
-    int* buf = new int[w + h + w + h];
+    std::vector<int> buf(w + h + w + h);
 
-    int* xofs = buf;//new int[w];
-    int* yofs = buf + w;//new int[h];
+    int* xofs = buf.data();//new int[w];
+    int* yofs = buf.data() + w;//new int[h];
 
-    short* ialpha = (short*)(buf + w + h);//new short[w * 2];
-    short* ibeta = (short*)(buf + w + h + w);//new short[h * 2];
+    short* ialpha = (short*)(buf.data() + w + h);//new short[w * 2];
+    short* ibeta = (short*)(buf.data() + w + h + w);//new short[h * 2];
 
     float fx;
     float fy;
@@ -1936,7 +1936,6 @@ void resize_bilinear_c4(const unsigned char* src, int srcw, int srch, unsigned c
         ibeta += 2;
     }
 
-    delete[] buf;
 }
 
 Mat Mat::from_pixels(const unsigned char* pixels, int type, int w, int h)
@@ -1984,42 +1983,34 @@ Mat Mat::from_pixels_resize(const unsigned char* pixels, int type, int w, int h,
     if (w == target_width && h == target_height)
         return Mat::from_pixels(pixels, type, w, h);
 
-    Mat m;
-
     int type_from = type & PIXEL_FORMAT_MASK;
 
     if (type_from == PIXEL_RGB || type_from == PIXEL_BGR)
     {
-        unsigned char* dst = new unsigned char[target_width * target_height * 3];
+        std::vector<std::uint8_t> dst(target_width * target_height * 3);
 
-        resize_bilinear_c3(pixels, w, h, dst, target_width, target_height);
+        resize_bilinear_c3(pixels, w, h, dst.data(), target_width, target_height);
 
-        m = Mat::from_pixels(dst, type, target_width, target_height);
-
-        delete[] dst;
+        return Mat::from_pixels(dst.data(), type, target_width, target_height);
     }
     else if (type_from == PIXEL_GRAY)
     {
-        unsigned char* dst = new unsigned char[target_width * target_height];
+        std::vector<std::uint8_t> dst(target_width * target_height);
 
-        resize_bilinear_c1(pixels, w, h, dst, target_width, target_height);
+        resize_bilinear_c1(pixels, w, h, dst.data(), target_width, target_height);
 
-        m = Mat::from_pixels(dst, type, target_width, target_height);
-
-        delete[] dst;
+        return Mat::from_pixels(dst.data(), type, target_width, target_height);
     }
     else if (type_from == PIXEL_RGBA)
     {
-        unsigned char* dst = new unsigned char[target_width * target_height * 4];
+        std::vector<std::uint8_t> dst(target_width * target_height * 4);
 
-        resize_bilinear_c4(pixels, w, h, dst, target_width, target_height);
+        resize_bilinear_c4(pixels, w, h, dst.data(), target_width, target_height);
 
-        m = Mat::from_pixels(dst, type, target_width, target_height);
-
-        delete[] dst;
+        return Mat::from_pixels(dst.data(), type, target_width, target_height);
     }
 
-    return m;
+    return {};
 }
 
 void Mat::to_pixels(unsigned char* pixels, int type)
@@ -2051,33 +2042,27 @@ void Mat::to_pixels_resize(unsigned char* pixels, int type, int target_width, in
 
     if (type_to == PIXEL_RGB || type_to == PIXEL_BGR)
     {
-        unsigned char* src = new unsigned char[w * h * 3];
+        std::vector<std::uint8_t> src(w * h * 3);
 
-        to_pixels(src, type);
+        to_pixels(src.data(), type);
 
-        resize_bilinear_c3(src, w, h, pixels, target_width, target_height);
-
-        delete[] src;
+        resize_bilinear_c3(src.data(), w, h, pixels, target_width, target_height);
     }
     else if (type_to == PIXEL_GRAY)
     {
-        unsigned char* src = new unsigned char[w * h];
+        std::vector<std::uint8_t> src(w * h);
 
-        to_pixels(src, type);
+        to_pixels(src.data(), type);
 
-        resize_bilinear_c1(src, w, h, pixels, target_width, target_height);
-
-        delete[] src;
+        resize_bilinear_c1(src.data(), w, h, pixels, target_width, target_height);
     }
     else if (type_to == PIXEL_RGBA)
     {
-        unsigned char* src = new unsigned char[w * h * 4];
+        std::vector<std::uint8_t> src(w * h * 4);
 
-        to_pixels(src, type);
+        to_pixels(src.data(), type);
 
-        resize_bilinear_c4(src, w, h, pixels, target_width, target_height);
-
-        delete[] src;
+        resize_bilinear_c4(src.data(), w, h, pixels, target_width, target_height);
     }
 }
 

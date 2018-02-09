@@ -33,7 +33,7 @@ public:
     std::string name;
 #endif // NCNN_STRING
     // layer index which produce this blob as output
-    int producer;
+    int producer = -1;
     // layer index which need this blob as input
     std::vector<int> consumers;
 };

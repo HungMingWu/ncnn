@@ -8,7 +8,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/layer)
 
 set(ncnn_SRCS
-    blob.cpp
     cpu.cpp
     layer.cpp
     mat.cpp
@@ -58,17 +57,17 @@ macro(ncnn_add_layer class)
     if(WITH_LAYER_${name})
         if(WITH_LAYER_${name}_arm)
             file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/layer_declaration.h
-                "extern Layer* ${class}_arm_layer_creator();\n")
+                "extern std::unique_ptr<Layer> ${class}_arm_layer_creator();\n")
             file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/layer_registry.h
                 "#if NCNN_STRING\n{\"${class}\",${class}_arm_layer_creator},\n#else\n{${class}_arm_layer_creator},\n#endif\n")
         elseif(WITH_LAYER_${name}_x86)
             file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/layer_declaration.h
-                "extern Layer* ${class}_x86_layer_creator();\n")
+                "extern std::unique_ptr<Layer> ${class}_x86_layer_creator();\n")
             file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/layer_registry.h
                 "#if NCNN_STRING\n{\"${class}\",${class}_x86_layer_creator},\n#else\n{${class}_x86_layer_creator},\n#endif\n")
         else()
             file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/layer_declaration.h
-                "extern Layer* ${class}_layer_creator();\n")
+                "extern std::unique_ptr<Layer> ${class}_layer_creator();\n")
             file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/layer_registry.h
                 "#if NCNN_STRING\n{\"${class}\",${class}_layer_creator},\n#else\n{${class}_layer_creator},\n#endif\n")
         endif()

@@ -72,7 +72,7 @@ int DeconvolutionDepthWise_arm::forward(const Mat& bottom_blob, Mat& top_blob) c
                 bias_data_g = Mat(1, (void*)((const float*)bias_data + g));
 
             // call Deconvolution
-            ncnn::Layer* op = ncnn::create_layer(ncnn::LayerType::Deconvolution);
+            std::unique_ptr<ncnn::Layer> op = ncnn::create_layer(ncnn::LayerType::Deconvolution);
 
             // set param
             ncnn::ParamDict pd;
@@ -99,8 +99,6 @@ int DeconvolutionDepthWise_arm::forward(const Mat& bottom_blob, Mat& top_blob) c
 
             // forward
             op->forward(bottom_blob_g, top_blob_bordered_g);
-
-            delete op;
         }
 
 #ifdef _OPENMP
@@ -122,7 +120,7 @@ int DeconvolutionDepthWise_arm::forward(const Mat& bottom_blob, Mat& top_blob) c
                 bias_data_g = Mat(num_output_g, (void*)((const float*)bias_data + num_output_g * g));
 
             // call Deconvolution
-            ncnn::Layer* op = ncnn::create_layer(ncnn::LayerType::Deconvolution);
+            std::unique_ptr<ncnn::Layer> op = ncnn::create_layer(ncnn::LayerType::Deconvolution);
 
             // set param
             ncnn::ParamDict pd;
@@ -149,8 +147,6 @@ int DeconvolutionDepthWise_arm::forward(const Mat& bottom_blob, Mat& top_blob) c
 
             // forward
             op->forward(bottom_blob_g, top_blob_bordered_g);
-
-            delete op;
         }
     }
 

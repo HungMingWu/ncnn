@@ -132,7 +132,7 @@ int Net::load_param(FILE* fp)
             continue;
         }
 
-        Layer* layer = create_layer(layer_type);
+        std::unique_ptr<Layer> layer = create_layer(layer_type);
         if (!layer)
         {
             layer = create_custom_layer(layer_type);
@@ -215,7 +215,7 @@ int Net::load_param(FILE* fp)
             continue;
         }
 
-        layers[layer_index] = layer;
+        layers[layer_index] = std::move(layer);
 
         layer_index++;
     }
@@ -272,7 +272,7 @@ int Net::load_param_bin(FILE* fp)
         int top_count;
         fread(&top_count, sizeof(int), 1, fp);
 
-        Layer* layer = create_layer(typeindex);
+        std::unique_ptr<Layer> layer = create_layer(typeindex);
         if (!layer)
         {
             int custom_index = typeindex & ~LayerType::CustomBit;
@@ -333,7 +333,7 @@ int Net::load_param_bin(FILE* fp)
             continue;
         }
 
-        layers[i] = layer;
+        layers[i] = std::move(layer);
     }
 
     return 0;
@@ -363,7 +363,7 @@ int Net::load_model(FILE* fp)
     ModelBin mb(fp);
     for (size_t i=0; i<layers.size(); i++)
     {
-        Layer* layer = layers[i];
+        auto &layer = layers[i];
 
         int lret = layer->load_model(mb);
         if (lret != 0)
@@ -436,7 +436,7 @@ int Net::load_param(const unsigned char* _mem)
         int top_count = *(int*)mem;
         mem += 4;
 
-        Layer* layer = create_layer(typeindex);
+        std::unique_ptr<Layer> layer = create_layer(typeindex);
         if (!layer)
         {
             int custom_index = typeindex & ~LayerType::CustomBit;
@@ -497,7 +497,7 @@ int Net::load_param(const unsigned char* _mem)
             continue;
         }
 
-        layers[i] = layer;
+        layers[i] = std::move(layer);
     }
 
     return mem - _mem;
@@ -514,10 +514,8 @@ int Net::load_model(const unsigned char* _mem)
 
     const unsigned char* mem = _mem;
     ModelBin mb(mem);
-    for (size_t i=0; i<layers.size(); i++)
+    for (const auto &layer : layers)
     {
-        Layer* layer = layers[i];
-
         int lret = layer->load_model(mb);
         if (lret != 0)
         {
@@ -532,10 +530,6 @@ int Net::load_model(const unsigned char* _mem)
 void Net::clear()
 {
     blobs.clear();
-    for (size_t i=0; i<layers.size(); i++)
-    {
-        delete layers[i];
-    }
     layers.clear();
 }
 
@@ -564,7 +558,7 @@ int Net::find_layer_index_by_name(const char* name) const
 {
     for (size_t i=0; i<layers.size(); i++)
     {
-        const Layer* layer = layers[i];
+        auto &layer = layers[i];
         if (layer->name == name)
         {
             return i;
@@ -587,32 +581,32 @@ int Net::custom_layer_to_index(const char* type)
     return -1;
 }
 
-Layer* Net::create_custom_layer(const char* type)
+std::unique_ptr<Layer> Net::create_custom_layer(const char* type)
 {
     int index = custom_layer_to_index(type);
     if (index == -1)
-        return 0;
+        return nullptr;
 
     return create_custom_layer(index);
 }
 #endif // NCNN_STRING
 
-Layer* Net::create_custom_layer(int index)
+std::unique_ptr<Layer> Net::create_custom_layer(int index)
 {
     const int custom_layer_registry_entry_count = custom_layer_registry.size();
     if (index < 0 || index >= custom_layer_registry_entry_count)
-        return 0;
+        return nullptr;
 
     layer_creator_func layer_creator = custom_layer_registry[index].creator;
     if (!layer_creator)
-        return 0;
+        return nullptr;
 
     return layer_creator();
 }
 
 int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightmode) const
 {
-    const Layer* layer = layers[layer_index];
+    auto &layer = layers[layer_index];
 
 //     fprintf(stderr, "forward_layer %d %s\n", layer_index, layer->name.c_str());
 
