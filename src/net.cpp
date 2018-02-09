@@ -30,15 +30,6 @@
 
 namespace ncnn {
 
-Net::Net()
-{
-}
-
-Net::~Net()
-{
-    clear();
-}
-
 #if NCNN_STRING
 int Net::register_custom_layer(const char* type, layer_creator_func creator)
 {
@@ -111,8 +102,8 @@ int Net::load_param(FILE* fp)
     int blob_count = 0;
     fscanf(fp, "%d %d", &layer_count, &blob_count);
 
-    layers.resize(layer_count);
-    blobs.resize(blob_count);
+    decltype(layers) layers_(layer_count);
+    decltype(blobs) blobs_(blob_count);
 
     ParamDict pd;
 
@@ -140,7 +131,6 @@ int Net::load_param(FILE* fp)
         if (!layer)
         {
             fprintf(stderr, "layer %s not exists or registered\n", layer_type);
-            clear();
             return -1;
         }
 
@@ -149,7 +139,7 @@ int Net::load_param(FILE* fp)
 //         fprintf(stderr, "new layer %d %s\n", layer_index, layer_name);
 
         layer->bottoms.resize(bottom_count);
-        for (int i=0; i<bottom_count; i++)
+        for (auto &bottom : layer->bottoms)
         {
             char bottom_name[256];
             nscan = fscanf(fp, "%256s", bottom_name);
@@ -161,7 +151,7 @@ int Net::load_param(FILE* fp)
             int bottom_blob_index = find_blob_index_by_name(bottom_name);
             if (bottom_blob_index == -1)
             {
-                Blob& blob = blobs[blob_index];
+                Blob& blob = blobs_[blob_index];
 
                 bottom_blob_index = blob_index;
 
@@ -171,17 +161,17 @@ int Net::load_param(FILE* fp)
                 blob_index++;
             }
 
-            Blob& blob = blobs[bottom_blob_index];
+            Blob& blob = blobs_[bottom_blob_index];
 
             blob.consumers.push_back(layer_index);
 
-            layer->bottoms[i] = bottom_blob_index;
+            bottom = bottom_blob_index;
         }
 
         layer->tops.resize(top_count);
-        for (int i=0; i<top_count; i++)
+        for (auto &top : layer->tops)
         {
-            Blob& blob = blobs[blob_index];
+            Blob& blob = blobs_[blob_index];
 
             char blob_name[256];
             nscan = fscanf(fp, "%256s", blob_name);
@@ -195,7 +185,7 @@ int Net::load_param(FILE* fp)
 
             blob.producer = layer_index;
 
-            layer->tops[i] = blob_index;
+            top = blob_index;
 
             blob_index++;
         }
@@ -215,11 +205,13 @@ int Net::load_param(FILE* fp)
             continue;
         }
 
-        layers[layer_index] = std::move(layer);
+        layers_[layer_index] = std::move(layer);
 
         layer_index++;
     }
 
+    std::swap(layers, layers_);
+    std::swap(blobs, blobs_);
     return 0;
 }
 
@@ -256,8 +248,8 @@ int Net::load_param_bin(FILE* fp)
     int blob_count = 0;
     fread(&blob_count, sizeof(int), 1, fp);
 
-    layers.resize(layer_count);
-    blobs.resize(blob_count);
+    decltype(layers) layers_(layer_count);
+    decltype(blobs) blobs_(blob_count);
 
     ParamDict pd;
 
@@ -281,7 +273,6 @@ int Net::load_param_bin(FILE* fp)
         if (!layer)
         {
             fprintf(stderr, "layer %d not exists or registered\n", typeindex);
-            clear();
             return -1;
         }
 
@@ -295,7 +286,7 @@ int Net::load_param_bin(FILE* fp)
             int bottom_blob_index;
             fread(&bottom_blob_index, sizeof(int), 1, fp);
 
-            Blob& blob = blobs[bottom_blob_index];
+            Blob& blob = blobs_[bottom_blob_index];
 
             blob.consumers.push_back(i);
 
@@ -308,7 +299,7 @@ int Net::load_param_bin(FILE* fp)
             int top_blob_index;
             fread(&top_blob_index, sizeof(int), 1, fp);
 
-            Blob& blob = blobs[top_blob_index];
+            Blob& blob = blobs_[top_blob_index];
 
 //             blob.name = std::string(blob_name);
 //             fprintf(stderr, "new blob %s\n", blob_name);
@@ -333,9 +324,11 @@ int Net::load_param_bin(FILE* fp)
             continue;
         }
 
-        layers[i] = std::move(layer);
+        layers_[i] = std::move(layer);
     }
 
+    std::swap(layers, layers_);
+    std::swap(blobs, blobs_);
     return 0;
 }
 
@@ -420,8 +413,8 @@ int Net::load_param(const unsigned char* _mem)
     int blob_count = *(int*)(mem);
     mem += 4;
 
-    layers.resize(layer_count);
-    blobs.resize(blob_count);
+    decltype(layers) layers_(layer_count);
+    decltype(blobs) blobs_(blob_count);
 
     ParamDict pd;
 
@@ -445,7 +438,6 @@ int Net::load_param(const unsigned char* _mem)
         if (!layer)
         {
             fprintf(stderr, "layer %d not exists or registered\n", typeindex);
-            clear();
             return 0;
         }
 
@@ -459,7 +451,7 @@ int Net::load_param(const unsigned char* _mem)
             int bottom_blob_index = *(int*)mem;
             mem += 4;
 
-            Blob& blob = blobs[bottom_blob_index];
+            Blob& blob = blobs_[bottom_blob_index];
 
             blob.consumers.push_back(i);
 
@@ -472,7 +464,7 @@ int Net::load_param(const unsigned char* _mem)
             int top_blob_index = *(int*)mem;
             mem += 4;
 
-            Blob& blob = blobs[top_blob_index];
+            Blob& blob = blobs_[top_blob_index];
 
 //             blob.name = std::string(blob_name);
 //             fprintf(stderr, "new blob %s\n", blob_name);
@@ -497,9 +489,11 @@ int Net::load_param(const unsigned char* _mem)
             continue;
         }
 
-        layers[i] = std::move(layer);
+        layers_[i] = std::move(layer);
     }
 
+    std::swap(layers, layers_);
+    std::swap(blobs, blobs_);
     return mem - _mem;
 }
 
@@ -527,15 +521,9 @@ int Net::load_model(const unsigned char* _mem)
     return mem - _mem;
 }
 
-void Net::clear()
-{
-    blobs.clear();
-    layers.clear();
-}
-
 Extractor Net::create_extractor() const
 {
-    return Extractor(this, blobs.size());
+    return Extractor(*this, blobs.size());
 }
 
 #if NCNN_STRING
@@ -676,8 +664,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
     else
     {
         // load bottom blobs
-        std::vector<Mat> bottom_blobs;
-        bottom_blobs.resize(layer->bottoms.size());
+        std::vector<Mat> bottom_blobs(layer->bottoms.size());
         for (size_t i=0; i<layer->bottoms.size(); i++)
         {
             int bottom_blob_index = layer->bottoms[i];
@@ -758,11 +745,8 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
     return 0;
 }
 
-Extractor::Extractor(const Net* _net, int blob_count) : net(_net)
+Extractor::Extractor(const Net &_net, int blob_count) : net(_net), blob_mats(blob_count)
 {
-    blob_mats.resize(blob_count);
-    lightmode = true;
-    num_threads = 0;
 }
 
 void Extractor::set_light_mode(bool enable)
@@ -794,7 +778,7 @@ int Extractor::extract(int blob_index, Mat& feat)
 
     if (blob_mats[blob_index].dims == 0)
     {
-        int layer_index = net->blobs[blob_index].producer;
+        int layer_index = net.blobs[blob_index].producer;
 
 #ifdef _OPENMP
         int dynamic_current = 0;
@@ -808,7 +792,7 @@ int Extractor::extract(int blob_index, Mat& feat)
         }
 #endif
 
-        ret = net->forward_layer(layer_index, blob_mats, lightmode);
+        ret = net.forward_layer(layer_index, blob_mats, lightmode);
 
 #ifdef _OPENMP
         if (num_threads)
@@ -827,7 +811,7 @@ int Extractor::extract(int blob_index, Mat& feat)
 #if NCNN_STRING
 int Extractor::input(const char* blob_name, const Mat& in)
 {
-    int blob_index = net->find_blob_index_by_name(blob_name);
+    int blob_index = net.find_blob_index_by_name(blob_name);
     if (blob_index == -1)
         return -1;
 
@@ -838,7 +822,7 @@ int Extractor::input(const char* blob_name, const Mat& in)
 
 int Extractor::extract(const char* blob_name, Mat& feat)
 {
-    int blob_index = net->find_blob_index_by_name(blob_name);
+    int blob_index = net.find_blob_index_by_name(blob_name);
     if (blob_index == -1)
         return -1;
 
@@ -846,7 +830,7 @@ int Extractor::extract(const char* blob_name, Mat& feat)
 
     if (blob_mats[blob_index].dims == 0)
     {
-        int layer_index = net->blobs[blob_index].producer;
+        int layer_index = net.blobs[blob_index].producer;
 
 #ifdef _OPENMP
         int dynamic_current = 0;
@@ -860,7 +844,7 @@ int Extractor::extract(const char* blob_name, Mat& feat)
         }
 #endif
 
-        ret = net->forward_layer(layer_index, blob_mats, lightmode);
+        ret = net.forward_layer(layer_index, blob_mats, lightmode);
 
 #ifdef _OPENMP
         if (num_threads)

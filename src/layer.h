@@ -30,9 +30,9 @@ class Layer
 {
 public:
     // empty
-    Layer();
+    Layer() = default;
     // virtual destructor
-    virtual ~Layer();
+    virtual ~Layer() = default;
 
     // load layer specific parameter from parsed dict
     // return 0 if success
@@ -44,10 +44,10 @@ public:
 
 public:
     // one input and one output blob
-    bool one_blob_only;
+    bool one_blob_only = false;
 
     // support inplace inference
-    bool support_inplace;
+    bool support_inplace = false;
 
 public:
     // implement inference

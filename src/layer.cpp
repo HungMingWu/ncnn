@@ -18,16 +18,6 @@
 
 namespace ncnn {
 
-Layer::Layer()
-{
-    one_blob_only = false;
-    support_inplace = false;
-}
-
-Layer::~Layer()
-{
-}
-
 int Layer::load_param(const ParamDict& /*pd*/)
 {
     return 0;

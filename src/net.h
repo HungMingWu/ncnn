@@ -30,9 +30,9 @@ class Net
 {
 public:
     // empty init
-    Net();
+    Net() = default;
     // clear and destroy
-    ~Net();
+    ~Net() = default;
 
 #if NCNN_STRING
     // register custom layer by layer type name
@@ -72,9 +72,6 @@ public:
     // memory pointer must be 32-bit aligned
     // return bytes consumed
     int load_model(const unsigned char* mem);
-
-    // unload network structure and weight data
-    void clear();
 
     // construct an Extractor from network
     Extractor create_extractor() const;
@@ -130,13 +127,13 @@ public:
 
 protected:
     friend Extractor Net::create_extractor() const;
-    Extractor(const Net* net, int blob_count);
+    Extractor(const Net &net, int blob_count);
 
 private:
-    const Net* net;
+    const Net& net;
     std::vector<Mat> blob_mats;
-    bool lightmode;
-    int num_threads;
+    bool lightmode = true;
+    int num_threads = 0;
 };
 
 } // namespace ncnn
